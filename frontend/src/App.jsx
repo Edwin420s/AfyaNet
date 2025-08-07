@@ -1,6 +1,6 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Web3Modal } from '@web3modal/react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { EthereumClient, w3mConnectors, w3mProvider } from '@web3modal/ethereum';
+import { Web3Modal } from '@web3modal/react';
 import { configureChains, createConfig, WagmiConfig } from 'wagmi';
 import { lineaTestnet } from 'wagmi/chains';
 import { ToastContainer } from 'react-toastify';
@@ -11,7 +11,8 @@ import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import HospitalPortal from './pages/HospitalPortal';
 import UploadRecord from './pages/UploadRecord';
-import RecordsViewer from './pages/RecordsViewer';
+import ViewRecord from './pages/ViewRecord';
+import AdminPanel from './pages/AdminPanel';
 
 // Config
 const chains = [lineaTestnet];
@@ -29,19 +30,20 @@ function App() {
   return (
     <>
       <WagmiConfig config={wagmiConfig}>
-        <Router>
+        <BrowserRouter>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/hospital" element={<HospitalPortal />} />
             <Route path="/upload" element={<UploadRecord />} />
-            <Route path="/records/:cid" element={<RecordsViewer />} />
+            <Route path="/record/:cid" element={<ViewRecord />} />
+            <Route path="/admin" element={<AdminPanel />} />
           </Routes>
-        </Router>
+        </BrowserRouter>
       </WagmiConfig>
       
       <Web3Modal projectId={projectId} ethereumClient={ethereumClient} />
-      <ToastContainer position="bottom-right" />
+      <ToastContainer position="bottom-right" autoClose={5000} />
     </>
   );
 }

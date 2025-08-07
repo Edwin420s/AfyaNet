@@ -4,44 +4,83 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract HospitalRegistry is Ownable {
-    struct Hospital {
+    struct HospitalInfo {
         string name;
         string physicalAddress;
-        string registrationNumber;
+        string accreditationId;
+        string publicKey;
         bool isActive;
     }
-
-    mapping(address => Hospital) public hospitals;
+    
     address[] public hospitalAddresses;
-
+    mapping(address => HospitalInfo) public hospitals;
+    
     event HospitalRegistered(address indexed hospitalAddress, string name);
+    event HospitalUpdated(address indexed hospitalAddress, string field);
     event HospitalStatusChanged(address indexed hospitalAddress, bool isActive);
 
-    constructor() Ownabe () {}
-
     function registerHospital(
-        address _hospitalAddress,
-        string memory _name,
-        string memory _physicalAddress,
-        string memory _registrationNumber
+        address hospitalAddress,
+        string memory name,
+        string memory physicalAddress,
+        string memory accreditationId,
+        string memory publicKey
     ) external onlyOwner {
-        hospitals[_hospitalAddress] = Hospital({
-            name: _name,
-            physicalAddress: _physicalAddress,
-            registrationNumber: _registrationNumber,
+        require(hospitals[hospitalAddress].accreditationId.length == 0, "Hospital already registered");
+        
+        hospitals[hospitalAddress] = HospitalInfo({
+            name: name,
+            physicalAddress: physicalAddress,
+            accreditationId: accreditationId,
+            publicKey: publicKey,
             isActive: true
         });
-        hospitalAddresses.push(_hospitalAddress);
-
-        emit HospitalRegistered(_hospitalAddress, _name);
+        
+        hospitalAddresses.push(hospitalAddress);
+        emit HospitalRegistered(hospitalAddress, name);
     }
 
-    function setHospitalStatus(address _hospitalAddress, bool _isActive) external onlyOwner {
-        hospitals[_hospitalAddress].isActive = _isActive;
-        emit HospitalStatusChanged(_hospitalAddress, _isActive);
+    function updateHospitalInfo(
+        address hospitalAddress,
+        string memory field,
+        string memory value
+    ) external onlyOwner {
+        require(hospitals[hospitalAddress].accreditationId.length > 0, "Hospital not registered");
+        
+        if (keccak256(bytes(field)) == keccak256(bytes("name"))) {
+            hospitals[hospitalAddress].name = value;
+        } else if (keccak256(bytes(field)) == keccak256(bytes("physicalAddress"))) {
+            hospitals[hospitalAddress].physicalAddress = value;
+        } else if (keccak256(bytes(field)) == keccak256(bytes("publicKey"))) {
+            hospitals[hospitalAddress].publicKey = value;
+        } else {
+            revert("Invalid field");
+        }
+        
+        emit HospitalUpdated(hospitalAddress, field);
     }
 
-    function getHospitals() external view returns (address[] memory) {
+    function setHospitalStatus(address hospitalAddress, bool isActive) external onlyOwner {
+        require(hospitals[hospitalAddress].accreditationId.length > 0, "Hospital not registered");
+        hospitals[hospitalAddress].isActive = isActive;
+        emit HospitalStatusChanged(hospitalAddress, isActive);
+    }
+
+    function getRegisteredHospitals() external view returns (address[] memory) {
         return hospitalAddresses;
+    }
+
+    function getHospitalCount() external view returns (uint256) {
+        return hospitalAddresses.length;
+    }
+
+    function verifyHospital(address hospitalAddress, bytes32 hash, bytes memory signature) 
+        external 
+        view 
+        returns (bool) 
+    {
+        require(hospitals[hospitalAddress].isActive, "Hospital not active");
+        return keccak256(abi.encodePacked(hash, hospitals[hospitalAddress].publicKey)) == 
+            keccak256(abi.encodePacked(signature));
     }
 }
